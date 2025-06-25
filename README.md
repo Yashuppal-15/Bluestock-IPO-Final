@@ -1,22 +1,26 @@
-<<<<<<< HEAD
-📘 README.md — Bluestock IPO Web App
-🚀 Overview
-This is a full-stack IPO web application built with Next.js, PostgreSQL, Prisma, and Tailwind CSS.
-It includes a public IPO listing portal and a secure admin panel to manage IPO entries and upload RHP/DRHP documents.
+# 🚀 Bluestock IPO Web App
 
-🧑‍💻 Tech Stack
-Layer	Technology
-Frontend	Next.js + Tailwind CSS
-Backend	Next.js API Routes
-Database	PostgreSQL via Prisma ORM
-File Upload	Formidable (RHP/DRHP PDFs)
-Auth	Basic client-side (admin)
-Deployment	Vercel + Railway (PostgreSQL)
+A full-stack IPO listing and management web app built with **Next.js**, **PostgreSQL**, **Prisma**, and **Tailwind CSS**.  
+It features a public IPO listing portal, a secure admin panel, and RHP/DRHP file upload capability.
 
-📂 Project Structure
-pgsql
-Copy
-Edit
+---
+
+## 🧰 Tech Stack
+
+| Layer      | Technology                          |
+|------------|-------------------------------------|
+| Frontend   | Next.js, Tailwind CSS               |
+| Backend    | Next.js API Routes                  |
+| Database   | PostgreSQL via Prisma ORM           |
+| Uploads    | Formidable (PDF File Upload)        |
+| Auth       | Simple client-side (admin-only)     |
+| Deployment | Vercel (Frontend) + Railway (DB)    |
+
+---
+
+## 📁 Folder Structure
+
+```
 pages/
 ├── index.tsx             → IPO listing (public)
 ├── ipo/[id].tsx          → IPO detail page
@@ -26,98 +30,121 @@ pages/
 
 prisma/
 ├── schema.prisma         → DB schema
-├── seed.ts               → Sample data seeder
+├── seed.ts               → Seed script
 
 lib/
 ├── prisma.ts             → Prisma client
-├── api.ts                → API fetch helpers (frontend)
-├── auth.ts               → Admin auth helper
+├── api.ts, auth.ts       → Helpers
 
-public/docs/              → Uploaded RHP/DRHP PDFs
-.env.example              → DB config example
-🛠️ Setup Instructions
-Install dependencies
+public/docs/              → Uploaded PDFs
+.env.example              → Environment variable sample
+```
 
-bash
-Copy
-Edit
+---
+
+## 🛠️ Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Bluestock-IPO-Final.git
+cd Bluestock-IPO-Final
+```
+
+### 2. Install Dependencies
+
+```bash
 npm install
-Set up environment variables
-Create a .env file with your PostgreSQL connection:
+```
 
-env
-Copy
-Edit
-DATABASE_URL=postgresql://username:password@host:port/database
-Run Prisma DB migration
+### 3. Configure Environment
 
-bash
-Copy
-Edit
+Create a `.env` file using the provided template:
+
+```bash
+cp .env.example .env
+```
+
+Then paste your PostgreSQL database URL:
+
+```
+DATABASE_URL=postgresql://user:pass@host:port/db
+```
+
+---
+
+### 4. Initialize the Database
+
+```bash
 npx prisma migrate dev --name init
-Seed initial data (Tata & Ola IPOs)
-
-bash
-Copy
-Edit
 npx prisma db seed
-Start the development server
+```
 
-bash
-Copy
-Edit
+Then open [http://localhost:5555](http://localhost:5555) to inspect your database via Prisma Studio.
+
+---
+
+### 5. Run the Development Server
+
+```bash
 npm run dev
-🔐 Admin Login (Hardcoded)
-Username	Password
-admin	admin
+```
 
-📤 File Upload (RHP/DRHP)
-RHP & DRHP PDFs are uploaded via the admin panel.
+Visit: [http://localhost:3000](http://localhost:3000)
 
-Stored in public/docs/
+---
 
-Downloadable from public detail page
+## 🔐 Admin Panel Login
 
-🌐 Deployment (Optional)
-1. Deploy to Vercel
-Connect GitHub repo
+| Username | Password |
+|----------|----------|
+| admin    | admin    |
 
-Add DATABASE_URL in Vercel environment variables
+---
 
-2. DB Hosting via Railway
-Use Railway's PostgreSQL instance
+## 🎯 Features
 
-Paste the Railway connection string into .env or Vercel settings
+- 📌 IPO listings with details and performance
+- 🔍 Searchable public pages
+- 🧑‍💼 Admin dashboard to add/delete IPOs
+- 📎 Upload RHP/DRHP PDFs
+- 💾 PostgreSQL backend
+- ⚡ Fully styled with Tailwind CSS
+- 🧩 Easy to deploy to Vercel
 
-✅ Features
-Public IPO listing page
+---
 
-IPO detail view with RHP/DRHP downloads
+## 🌐 Deployment Instructions
 
-Admin login system
+### 1. Deploy to Vercel
 
-Admin dashboard with add/delete IPOs
+- Push your code to GitHub
+- Visit [https://vercel.com](https://vercel.com)
+- Import GitHub repo
+- Set environment variable `DATABASE_URL` in Vercel dashboard
+- Deploy
 
-File upload and storage
+### 2. Use Railway for DB (Optional)
 
-Responsive Tailwind UI
+- Visit [https://railway.app](https://railway.app)
+- Create a PostgreSQL project
+- Copy the connection URL and paste it into `.env`
 
-Full database integration via Prisma
-=======
-# Bluestock IPO Web App
+---
 
-## Tech Stack
-- Next.js (TypeScript)
-- Prisma ORM
-- PostgreSQL
-- Tailwind CSS
+## 🧠 Notes & Tips
 
-## Setup Instructions
-1. `npm install`
-2. `cp .env.example .env`
-3. Edit `.env` with your DB credentials
-4. `npx prisma migrate dev --name init`
-5. `npm run dev`
+- Ensure `node_modules/` is ignored via `.gitignore`
+- Always seed database after migrations
+- PDFs are stored in `public/docs/`
+- Admin login is stored in `localStorage` (no real auth backend)
 
-Visit `http://localhost:3000`
->>>>>>> 13afdbb2f8984d86bb8e371f0ead079c79d33354
+---
+
+## 📜 License
+
+This project is for learning/demo purposes only.
+
+---
+
+> Built with ❤️ for IPO exploration and admin management.
