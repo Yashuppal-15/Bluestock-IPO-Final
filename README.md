@@ -47,7 +47,11 @@ public/docs/              → Uploaded PDFs
 ### 1. Clone the Repository
 
 ```bash
+
 git clone https://github.com/Yashuppal-15/Bluestock-IPO-Final.git
+=======
+git clone https://github.com/YOUR_USERNAME/Bluestock-IPO-Final.git
+
 cd Bluestock-IPO-Final
 ```
 

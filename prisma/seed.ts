@@ -44,11 +44,11 @@ async function main() {
           issueType: "Book Built Issue IPO",
           listingDate: new Date("2024-01-25"),
           status: "Upcoming",
-          ipoPrice: 0,
-          listingPrice: 0,
-          listingGain: 0,
-          currentMarketPrice: 0,
-          currentReturn: 0,
+          ipoPrice: Float?,
+          listingPrice: Float?,
+          listingGain: Float?,
+          currentMarketPrice: Float?,
+          currentReturn: Float?,
           documents: {
             create: {
               rhpPdf: "/docs/ola-rhp.pdf",

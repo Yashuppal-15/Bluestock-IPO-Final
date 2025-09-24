@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {
   "name": "bluestock-ipo-next",
   "version": "1.0.0",
@@ -8,55 +7,27 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.13.0",
     "formidable": "^3.5.4",
     "next": "14.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/node": "^24.0.3",
+    "@prisma/client": "^6.16.2",
+    "@types/node": "24.0.3",
     "@types/react": "19.1.8",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
-    "prisma": "^5.13.0",
+    "prisma": "^6.16.2",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.3.3"
   }
 }
-=======
-{
-  "name": "bluestock-ipo-next",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "prisma": "prisma"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.13.0",
-    "next": "14.1.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "devDependencies": {
-    "@types/node": "24.0.3",
-    "@types/react": "19.1.8",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24",
-    "prisma": "^5.13.0",
-    "tailwindcss": "^3.4.3",
-    "typescript": "^5.4.0"
-  }
-}
->>>>>>> 13afdbb2f8984d86bb8e371f0ead079c79d33354

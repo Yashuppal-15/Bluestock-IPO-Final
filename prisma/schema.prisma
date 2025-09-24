@@ -8,17 +8,10 @@ datasource db {
 }
 
 model Company {
-<<<<<<< HEAD
-  id        Int    @id @default(autoincrement())
-  name      String
-  logo      String
-  ipos      IPO[]
-=======
-  id       Int    @id @default(autoincrement())
-  name     String
-  logoUrl  String
-  ipos     IPO[]
->>>>>>> 13afdbb2f8984d86bb8e371f0ead079c79d33354
+  id    Int    @id @default(autoincrement())
+  name  String
+  logo  String
+  ipos  IPO[]
 }
 
 model IPO {
@@ -30,18 +23,18 @@ model IPO {
   issueSize           String
   issueType           String
   listingDate         DateTime
-<<<<<<< HEAD
-  status              String
+  status              IPOStatus
   ipoPrice            Float
-  listingPrice        Float
-  listingGain         Float
-  currentMarketPrice  Float
-  currentReturn       Float
+  listingPrice        Float?    // nullable
+  listingGain         Float?    // nullable
+  currentMarketPrice  Float?    // nullable
+  currentReturn       Float?    // nullable
   createdAt           DateTime  @default(now())
 
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   documents Document[]
 }
+
 
 model Document {
   id      Int    @id @default(autoincrement())
@@ -51,24 +44,6 @@ model Document {
 
   ipo     IPO    @relation(fields: [ipoId], references: [id], onDelete: Cascade)
 }
-=======
-  status              IPOStatus
-  ipoPrice            Decimal
-  listingPrice        Decimal
-  listingGain         Decimal
-  currentMarketPrice  Decimal
-  currentReturn       Decimal
-  documents           Document[]
-  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-}
-
-model Document {
-  id        Int    @id @default(autoincrement())
-  ipoId     Int
-  rhpPdf    String
-  drhpPdf   String
-  ipo       IPO    @relation(fields: [ipoId], references: [id], onDelete: Cascade)
-}
 
 enum IPOStatus {
   UPCOMING
@@ -76,4 +51,3 @@ enum IPOStatus {
   CLOSED
   LISTED
 }
->>>>>>> 13afdbb2f8984d86bb8e371f0ead079c79d33354
