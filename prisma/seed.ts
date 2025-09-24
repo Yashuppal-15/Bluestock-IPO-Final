@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+const { PrismaClient, IPOStatus } = require("@prisma/client");
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -14,7 +15,7 @@ async function main() {
           issueSize: "₹3,042.51 Cr",
           issueType: "Book Built Issue IPO",
           listingDate: new Date("2023-12-05"),
-          status: "Listed",
+          status: IPOStatus.LISTED,
           ipoPrice: 500,
           listingPrice: 1200,
           listingGain: 140,
@@ -43,12 +44,12 @@ async function main() {
           issueSize: "₹2,500 Cr",
           issueType: "Book Built Issue IPO",
           listingDate: new Date("2024-01-25"),
-          status: "Upcoming",
-          ipoPrice: Float?,
-          listingPrice: Float?,
-          listingGain: Float?,
-          currentMarketPrice: Float?,
-          currentReturn: Float?,
+          status: IPOStatus.UPCOMING,
+          ipoPrice: 0,
+          listingPrice: 0,
+          listingGain: 0,
+          currentMarketPrice: 0,
+          currentReturn: 0,
           documents: {
             create: {
               rhpPdf: "/docs/ola-rhp.pdf",
