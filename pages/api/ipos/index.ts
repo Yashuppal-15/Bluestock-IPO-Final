@@ -1,55 +1,104 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/prisma";
 
-export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    const ipos = await prisma.iPO.findMany({
-      include: {
-        company: true,
-        documents: true,
-      },
-      orderBy: { id: 'desc' },
-    });
-    return res.status(200).json(ipos);
-  }
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method === "GET") {
+    try {
+      const { search, status } = req.query;
 
-  if (req.method === 'POST') {
-    const data = req.body;
+      let where: any = {};
 
-    const company = await prisma.company.create({
-      data: {
-        name: data.company.name,
-        logo: data.company.logo,
-      },
-    });
-
-    const ipo = await prisma.iPO.create({
-      data: {
-        companyId: company.id,
-        priceBand: data.priceBand,
-        openDate: new Date(data.openDate),
-        closeDate: new Date(data.closeDate),
-        issueSize: data.issueSize,
-        issueType: data.issueType,
-        listingDate: new Date(data.listingDate),
-        status: data.status,
-        ipoPrice: data.ipoPrice,
-        listingPrice: data.listingPrice,
-        listingGain: data.listingGain,
-        currentMarketPrice: data.currentMarketPrice,
-        currentReturn: data.currentReturn,
-        documents: {
-          create: {
-            rhpPdf: data.documents.rhpPdf,
-            drhpPdf: data.documents.drhpPdf,
+      if (search) {
+        where.OR = [
+          {
+            company: {
+              name: {
+                contains: search as string,
+                mode: "insensitive"
+              }
+            }
           },
+          {
+            priceBand: {
+              contains: search as string,
+              mode: "insensitive"
+            }
+          }
+        ];
+      }
+
+      if (status) {
+        where.status = status as string;
+      }
+
+      const ipos = await prisma.iPO.findMany({
+        where,
+        include: {
+          company: true,
+          documents: true
         },
-      },
-    });
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
 
-    return res.status(201).json(ipo);
+      res.status(200).json(ipos);
+    } catch (error) {
+      console.error("Error fetching IPOs:", error);
+      res.status(500).json({ error: "Failed to fetch IPOs" });
+    }
+  } else if (req.method === "POST") {
+    try {
+      const { companyId, priceBand, issueType, issueSize, openDate, closeDate, status, ipoPrice, listingPrice, listingGain, currentReturn } = req.body;
+
+      // Validation
+      if (!companyId || !priceBand || !issueType || !issueSize || !openDate || !closeDate) {
+        return res.status(400).json({
+          error: "companyId, priceBand, issueType, issueSize, openDate, and closeDate are required"
+        });
+      }
+
+      // Verify company exists
+      const company = await prisma.company.findUnique({
+        where: { id: companyId }
+      });
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      const newIPO = await prisma.iPO.create({
+        data: {
+          companyId,
+          priceBand,
+          issueType,
+          issueSize,
+          openDate: new Date(openDate),
+          closeDate: new Date(closeDate),
+          status: status || "Upcoming",
+          ipoPrice: ipoPrice ? parseFloat(ipoPrice) : null,
+          listingPrice: listingPrice ? parseFloat(listingPrice) : null,
+          listingGain: listingGain ? parseFloat(listingGain) : null,
+          currentReturn: currentReturn ? parseFloat(currentReturn) : null
+        },
+        include: {
+          company: true,
+          documents: true
+        }
+      });
+
+      res.status(201).json({
+        message: "IPO created successfully",
+        ipo: newIPO
+      });
+    } catch (error: any) {
+      console.error("Error creating IPO:", error);
+      res.status(500).json({ error: "Failed to create IPO" });
+    }
+  } else {
+    res.status(405).json({ error: "Method not allowed" });
   }
-
-  res.setHeader('Allow', ['GET', 'POST']);
-  res.status(405).end(`Method ${req.method} Not Allowed`);
 }
