@@ -8,42 +8,51 @@ datasource db {
 }
 
 model Company {
-  id    Int    @id @default(autoincrement())
-  name  String
-  logo  String
-  ipos  IPO[]
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  symbol    String  @unique
+  logo      String?
+  ipos      IPO[]
+  documents Document[]
+
+  @@map("companies")
 }
 
 model IPO {
-  id                  Int       @id @default(autoincrement())
-  companyId           Int
-  priceBand           String
-  openDate            DateTime
-  closeDate           DateTime
-  issueSize           String
-  issueType           String
-  listingDate         DateTime
-  status              IPOStatus
-  ipoPrice            Float
-  listingPrice        Float?    // nullable
-  listingGain         Float?    // nullable
-  currentMarketPrice  Float?    // nullable
-  currentReturn       Float?    // nullable
-  createdAt           DateTime  @default(now())
+  id              Int     @id @default(autoincrement())
+  companyId       Int
+  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  priceBand       String
+  issueType       String
+  issueSize       String
+  openDate        DateTime
+  closeDate       DateTime
+  status          String  @default("Upcoming")
+  ipoPrice        Float?
+  listingPrice    Float?
+  listingGain     Float?
+  currentReturn   Float?
+  documents       Document[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  documents Document[]
+  @@map("ipos")
 }
-
 
 model Document {
-  id      Int    @id @default(autoincrement())
-  ipoId   Int
-  rhpPdf  String
-  drhpPdf String
+  id        Int     @id @default(autoincrement())
+  ipoId     Int
+  ipo       IPO     @relation(fields: [ipoId], references: [id], onDelete: Cascade)
+  companyId Int     // ← ADD THIS LINE
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)  // ← ADD THIS LINE
+  type      String  // RHP or DRHP
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  ipo     IPO    @relation(fields: [ipoId], references: [id], onDelete: Cascade)
+  @@map("documents")
 }
+
 
 enum IPOStatus {
   UPCOMING
