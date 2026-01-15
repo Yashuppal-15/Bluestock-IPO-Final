@@ -1,20 +1,25 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
   try {
     const ipos = await prisma.iPO.findMany({
-      include: { company: true },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            symbol: true,  // ← ADD THIS LINE
+            logo: true
+          }
+        }
+      }
     });
 
-    // Create CSV headers
+    // CSV Headers
     const headers = [
       "Company Name",
       "Symbol",
@@ -26,41 +31,45 @@ export default async function handler(
       "Status",
       "IPO Price",
       "Listing Price",
-      "Listing Gain %",
-      "Current Return %",
+      "Listing Gain",
+      "Current Return"
     ];
 
-    // Create CSV rows
+    // CSV Rows
     const rows = ipos.map((ipo) => [
       ipo.company.name,
-      ipo.company.symbol || "N/A",  // ← ADD || "N/A"
+      ipo.company.symbol || "N/A",
       ipo.priceBand,
       ipo.issueType,
       ipo.issueSize,
-      new Date(ipo.openDate).toLocaleDateString("en-IN"),
-      new Date(ipo.closeDate).toLocaleDateString("en-IN"),
+      new Date(ipo.openDate).toLocaleDateString(),
+      new Date(ipo.closeDate).toLocaleDateString(),
       ipo.status,
-      ipo.ipoPrice || "N/A",
-      ipo.listingPrice || "N/A",
-      ipo.listingGain || "N/A",
-      ipo.currentReturn || "N/A",
+      ipo.ipoPrice?.toString() || "N/A",
+      ipo.listingPrice?.toString() || "N/A",
+      ipo.listingGain?.toString() || "N/A",
+      ipo.currentReturn?.toString() || "N/A"
     ]);
 
     // Create CSV content
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+      ...rows.map((row) =>
+        row
+          .map((cell) => `"${cell}"`)
+          .join(",")
+      )
     ].join("\n");
 
+    // Set headers and send
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="ipos-${new Date().toISOString().split("T")[0]}.csv"`
+      "attachment; filename=ipos.csv"
     );
-
     res.status(200).send(csvContent);
   } catch (error) {
-    console.error("Error exporting CSV:", error);
+    console.error("CSV Export Error:", error);
     res.status(500).json({ error: "Failed to export CSV" });
   }
 }
