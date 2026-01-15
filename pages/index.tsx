@@ -32,12 +32,19 @@ interface IPO {
 
 export default function HomePage() {
   const [ipos, setIpos] = useState<IPO[]>([]);
+  const [filteredIpos, setFilteredIpos] = useState<IPO[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     fetchIPOs();
   }, []);
+
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [ipos, filter, searchQuery, sortBy]);
 
   const fetchIPOs = async () => {
     try {
@@ -51,10 +58,44 @@ export default function HomePage() {
     }
   };
 
-  const filteredIPOs = ipos.filter((ipo) => {
-    if (filter === "ALL") return true;
-    return ipo.status === filter;
-  });
+  const applyFiltersAndSort = () => {
+    let result = ipos;
+
+    // Apply status filter
+    if (filter !== "ALL") {
+      result = result.filter((ipo) => ipo.status === filter);
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (ipo) =>
+          ipo.company.name.toLowerCase().includes(query) ||
+          ipo.company.symbol.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sorting
+    result = result.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.openDate).getTime() - new Date(a.openDate).getTime();
+        case "oldest":
+          return new Date(a.openDate).getTime() - new Date(b.openDate).getTime();
+        case "gain-high":
+          return (b.listingGain || 0) - (a.listingGain || 0);
+        case "gain-low":
+          return (a.listingGain || 0) - (b.listingGain || 0);
+        case "name":
+          return a.company.name.localeCompare(b.company.name);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredIpos(result);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -78,52 +119,90 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">BlueStock IPO</h1>
-            <p className="text-slate-600 text-sm">Track and analyze IPO opportunities</p>
-          </div>
-          <div className="flex gap-3">
-            <Link
-              href="/admin/login"
-              className="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition font-medium"
-            >
-              Admin Login
-            </Link>
-          </div>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Discover IPO Opportunities
+          </h1>
+          <p className="text-xl text-teal-100 max-w-2xl">
+            Track, analyze, and compare IPOs with real-time data and insights
+          </p>
         </div>
-      </header>
+      </section>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filter Buttons */}
+        {/* Search Bar */}
         <div className="mb-8">
-          <div className="flex gap-2 flex-wrap">
-            {["ALL", "UPCOMING", "OPEN", "CLOSED", "LISTED"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  filter === status
-                    ? "bg-teal-600 text-white shadow-md"
-                    : "bg-white text-slate-700 border border-slate-200 hover:border-teal-600 hover:text-teal-600"
-                }`}
-              >
-                {status}
-                <span className="ml-2 text-sm opacity-75">
-                  ({ipos.filter((ipo) => (status === "ALL" ? true : ipo.status === status)).length})
-                </span>
-              </button>
-            ))}
+          <input
+            type="text"
+            placeholder="🔍 Search by company name or symbol (e.g., Infosys, INFY)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-6 py-4 rounded-xl border border-slate-200 bg-white focus:border-teal-500 focus:outline-none shadow-sm text-lg"
+          />
+        </div>
+
+        {/* Filter & Sort Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Filter by Status
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {["ALL", "UPCOMING", "OPEN", "CLOSED", "LISTED"].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilter(status)}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${
+                    filter === status
+                      ? "bg-teal-600 text-white shadow-md"
+                      : "bg-white text-slate-700 border border-slate-200 hover:border-teal-600"
+                  }`}
+                >
+                  {status}
+                  <span className="ml-2 text-xs opacity-75">
+                    ({ipos.filter((ipo) => (status === "ALL" ? true : ipo.status === status)).length})
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Sort By */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Sort by
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-teal-500 focus:outline-none bg-white"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="gain-high">Highest Gain</option>
+              <option value="gain-low">Lowest Gain</option>
+              <option value="name">Company Name (A-Z)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="mb-4">
+          <p className="text-slate-600 text-sm">
+            Showing <span className="font-bold text-slate-900">{filteredIpos.length}</span> IPO
+            {filteredIpos.length !== 1 ? "s" : ""}
+            {searchQuery && ` matching "${searchQuery}"`}
+          </p>
         </div>
 
         {/* Loading State */}
         {loading && (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin">⏳</div>
+            <div className="inline-block animate-spin text-4xl mb-4">⏳</div>
             <p className="text-slate-600 mt-2">Loading IPOs...</p>
           </div>
         )}
@@ -131,9 +210,9 @@ export default function HomePage() {
         {/* IPO Cards Grid */}
         {!loading && (
           <>
-            {filteredIPOs.length > 0 ? (
+            {filteredIpos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredIPOs.map((ipo) => (
+                {filteredIpos.map((ipo) => (
                   <Link key={ipo.id} href={`/ipo/${ipo.id}`}>
                     <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer h-full">
                       {/* Company Info */}
@@ -253,9 +332,19 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="text-center py-12">
+                <div className="text-5xl mb-4">🔍</div>
                 <p className="text-slate-600 text-lg">
-                  No IPOs found with selected filter
+                  No IPOs found matching your search
                 </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilter("ALL");
+                  }}
+                  className="mt-4 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition"
+                >
+                  Clear Filters
+                </button>
               </div>
             )}
           </>
