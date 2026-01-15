@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,56 +13,75 @@ export default async function handler(
     const {
       companyId,
       priceBand,
+      issueType,
+      issueSize,
       openDate,
       closeDate,
-      issueSize,
-      issueType,
-      listingDate,
       status,
       ipoPrice,
       listingPrice,
       listingGain,
-      currentMarketPrice,
-      currentReturn,
+      currentReturn
     } = req.body;
 
     // Validation
     if (
       !companyId ||
       !priceBand ||
-      !openDate ||
-      !closeDate ||
-      !issueSize ||
       !issueType ||
-      !status
+      !issueSize ||
+      !openDate ||
+      !closeDate
     ) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({
+        error:
+          "companyId, priceBand, issueType, issueSize, openDate, and closeDate are required"
+      });
     }
 
+    // Verify company exists
+    const company = await prisma.company.findUnique({
+      where: { id: companyId }
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    // Create IPO
     const newIPO = await prisma.iPO.create({
       data: {
-        companyId: parseInt(companyId),
+        companyId,
         priceBand,
+        issueType,
+        issueSize,
         openDate: new Date(openDate),
         closeDate: new Date(closeDate),
-        issueSize,
-        issueType,
-        listingDate: listingDate ? new Date(listingDate) : null,
-        status,
+        status: status || "Upcoming",
         ipoPrice: ipoPrice ? parseFloat(ipoPrice) : null,
         listingPrice: listingPrice ? parseFloat(listingPrice) : null,
         listingGain: listingGain ? parseFloat(listingGain) : null,
-        currentMarketPrice: currentMarketPrice
-          ? parseFloat(currentMarketPrice)
-          : null,
-        currentReturn: currentReturn ? parseFloat(currentReturn) : null,
+        currentReturn: currentReturn ? parseFloat(currentReturn) : null
       },
-      include: { company: true },
+      include: {
+        company: true,
+        documents: true
+      }
     });
 
-    res.status(201).json(newIPO);
-  } catch (error) {
+    res.status(201).json({
+      message: "IPO created successfully",
+      ipo: newIPO
+    });
+  } catch (error: any) {
     console.error("Error creating IPO:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        error: "IPO with this configuration already exists"
+      });
+    }
+
     res.status(500).json({ error: "Failed to create IPO" });
   }
 }
