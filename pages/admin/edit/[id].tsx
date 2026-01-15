@@ -2,13 +2,48 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 
-export default function CreateIPO() {
+interface Company {
+  id: number;
+  name: string;
+  symbol?: string;
+}
+
+interface IPODocument {
+  id: number;
+  ipoId: number;
+  rhpPdf?: string;
+  drhpPdf?: string;
+}
+
+interface IPOData {
+  id: number;
+  companyId: number;
+  priceBand: string;
+  openDate: string;
+  closeDate: string;
+  issueSize: string;
+  issueType: string;
+  listingDate?: string;
+  status: string;
+  ipoPrice?: number;
+  listingPrice?: number;
+  listingGain?: number;
+  currentMarketPrice?: number;
+  currentReturn?: number;
+  company?: Company;
+  documents?: IPODocument[];
+}
+
+
+export default function EditIPO() {
   const router = useRouter();
+  const { id } = router.query;
   const { data: session, status } = useSession();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [pageLoading, setPageLoading] = useState(true);
 
   const [form, setForm] = useState({
     companyId: "",
@@ -26,25 +61,58 @@ export default function CreateIPO() {
     currentReturn: "",
   });
 
+  const [ipo, setIPO] = useState<any>(null);
   const [rhp, setRhp] = useState<File | null>(null);
   const [drhp, setDrhp] = useState<File | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/admin/login");
-    } else if (status === "authenticated") {
+    } else if (status === "authenticated" && id) {
+      fetchIPO();
       fetchCompanies();
     }
-  }, [status, router]);
+  }, [status, id, router]);
+
+  const fetchIPO = async () => {
+    try {
+      const res = await fetch(`/api/ipos/${id}`);
+      if (!res.ok) throw new Error("IPO not found");
+      
+      const data = await res.json();
+      setIPO(data as IPOData);
+      setForm({
+        companyId: data.companyId.toString(),
+        priceBand: data.priceBand,
+        openDate: new Date(data.openDate).toISOString().split("T")[0],
+        closeDate: new Date(data.closeDate).toISOString().split("T")[0],
+        issueSize: data.issueSize,
+        issueType: data.issueType,
+        listingDate: data.listingDate
+          ? new Date(data.listingDate).toISOString().split("T")[0]
+          : "",
+        status: data.status,
+        ipoPrice: data.ipoPrice?.toString() || "",
+        listingPrice: data.listingPrice?.toString() || "",
+        listingGain: data.listingGain?.toString() || "",
+        currentMarketPrice: data.currentMarketPrice?.toString() || "",
+        currentReturn: data.currentReturn?.toString() || "",
+      });
+    } catch (error) {
+      console.error("Error fetching IPO:", error);
+      setError("Failed to load IPO");
+    } finally {
+      setPageLoading(false);
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
       const res = await fetch("/api/companies");
       const data = await res.json();
-      setCompanies(data);
+      setCompanies(data as any[]);
     } catch (error) {
       console.error("Error fetching companies:", error);
-      setError("Failed to load companies");
     }
   };
 
@@ -61,9 +129,6 @@ export default function CreateIPO() {
     setError("");
 
     try {
-      let rhpPath = "";
-      let drhpPath = "";
-
       // Upload files if provided
       if (rhp || drhp) {
         const fileData = new FormData();
@@ -80,17 +145,27 @@ export default function CreateIPO() {
         if (!uploadRes.ok) throw new Error("File upload failed");
 
         const files = await uploadRes.json();
-        rhpPath = files.rhp || "";
-        drhpPath = files.drhp || "";
+
+        // Update documents
+        await fetch("/api/documents/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ipoId: parseInt(id as string),
+            rhpPdf: files.rhp || ipo.documents?.[0]?.rhpPdf,
+            drhpPdf: files.drhp || ipo.documents?.[0]?.drhpPdf,
+          }),
+        });
 
         setUploadProgress(100);
       }
 
-      // Create IPO with Prisma
-      const ipoRes = await fetch("/api/ipos/create", {
-        method: "POST",
+      // Update IPO
+      const ipoRes = await fetch("/api/ipos/update", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: parseInt(id as string),
           ...form,
           companyId: parseInt(form.companyId),
           ipoPrice: form.ipoPrice ? parseFloat(form.ipoPrice) : null,
@@ -105,43 +180,38 @@ export default function CreateIPO() {
         }),
       });
 
-      if (!ipoRes.ok) throw new Error("Failed to create IPO");
+      if (!ipoRes.ok) throw new Error("Failed to update IPO");
 
-      const newIPO = await ipoRes.json();
-
-      // Create documents if files were uploaded
-      if (rhpPath || drhpPath) {
-        await fetch("/api/documents/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ipoId: newIPO.id,
-            rhpPdf: rhpPath,
-            drhpPdf: drhpPath,
-          }),
-        });
-      }
-
-      alert("IPO created successfully!");
+      alert("IPO updated successfully!");
       router.push("/admin/dashboard");
     } catch (error) {
-      console.error("Error creating IPO:", error);
-      setError("Failed to create IPO. Please try again.");
+      console.error("Error updating IPO:", error);
+      setError("Failed to update IPO. Please try again.");
     } finally {
       setLoading(false);
       setUploadProgress(0);
     }
   };
 
-  if (status === "loading") {
+  if (status === "loading" || pageLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!ipo) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-600">IPO not found</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Create New IPO</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Edit IPO - {ipo.company?.name}
+          </h1>
           <a
             href="/admin/dashboard"
             className="text-teal-600 hover:text-teal-700 font-medium"
@@ -177,17 +247,17 @@ export default function CreateIPO() {
                 value={form.companyId}
                 onChange={handleChange}
                 required
-                className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
               >
                 <option value="">Select Company</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
+                {companies.map((company: any) => (
+                  <option key={company.id} value={company.id.toString()}>
                     {company.name}
                   </option>
                 ))}
               </select>
             </div>
-
+      
             <div>
               <label className="block text-sm font-medium mb-1">Price Band *</label>
               <input
@@ -195,11 +265,12 @@ export default function CreateIPO() {
                 name="priceBand"
                 value={form.priceBand}
                 onChange={handleChange}
-                placeholder="e.g., ₹100 - ₹150"
                 required
-                className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+                placeholder="e.g., 100-125"
               />
             </div>
+
 
             <div>
               <label className="block text-sm font-medium mb-1">Open Date *</label>
@@ -342,7 +413,7 @@ export default function CreateIPO() {
           </div>
 
           <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold mb-4">Upload Documents</h3>
+            <h3 className="text-lg font-semibold mb-4">Update Documents (Optional)</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">RHP PDF</label>
@@ -352,6 +423,9 @@ export default function CreateIPO() {
                   onChange={(e) => setRhp(e.target.files?.[0] || null)}
                   className="w-full border px-3 py-2 rounded"
                 />
+                {ipo.documents?.[0]?.rhpPdf && (
+                  <p className="text-sm text-gray-600 mt-1">Current: {ipo.documents[0].rhpPdf}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">DRHP PDF</label>
@@ -361,6 +435,9 @@ export default function CreateIPO() {
                   onChange={(e) => setDrhp(e.target.files?.[0] || null)}
                   className="w-full border px-3 py-2 rounded"
                 />
+                {ipo.documents?.[0]?.drhpPdf && (
+                  <p className="text-sm text-gray-600 mt-1">Current: {ipo.documents[0].drhpPdf}</p>
+                )}
               </div>
             </div>
           </div>
@@ -370,7 +447,7 @@ export default function CreateIPO() {
             disabled={loading}
             className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-semibold py-2 rounded-lg transition"
           >
-            {loading ? "Creating IPO..." : "Create IPO"}
+            {loading ? "Updating IPO..." : "Update IPO"}
           </button>
         </form>
       </div>
