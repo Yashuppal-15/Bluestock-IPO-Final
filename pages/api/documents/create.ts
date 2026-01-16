@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,42 +10,61 @@ export default async function handler(
   }
 
   try {
-    const { ipoId, rhpPdf, drhpPdf } = req.body;
+    const { ipoId, companyId, type, url } = req.body;
 
-    if (!ipoId) {
-      return res.status(400).json({ error: "IPO ID is required" });
+    // Validation
+    if (!ipoId || !companyId || !type || !url) {
+      return res.status(400).json({
+        error: "ipoId, companyId, type, and url are required"
+      });
     }
 
-    // Check if document already exists for this IPO
+    // Validate type
+    if (!["RHP", "DRHP"].includes(type)) {
+      return res.status(400).json({
+        error: "Type must be either RHP or DRHP"
+      });
+    }
+
+    // Check if document already exists
     const existingDoc = await prisma.document.findFirst({
-      where: { ipoId: parseInt(ipoId) },
+      where: {
+        ipoId,
+        type
+      }
     });
 
-    let document;
-
     if (existingDoc) {
-      // Update existing document
-      document = await prisma.document.update({
+      // Update existing
+      const updated = await prisma.document.update({
         where: { id: existingDoc.id },
         data: {
-          rhpPdf: rhpPdf || existingDoc.rhpPdf,
-          drhpPdf: drhpPdf || existingDoc.drhpPdf,
-        },
+          url,
+          updatedAt: new Date()
+        }
       });
-    } else {
-      // Create new document
-      document = await prisma.document.create({
-        data: {
-          ipoId: parseInt(ipoId),
-          rhpPdf: rhpPdf || "",
-          drhpPdf: drhpPdf || "",
-        },
+      return res.status(200).json({
+        message: "Document updated successfully",
+        document: updated
       });
     }
 
-    res.status(201).json(document);
-  } catch (error) {
+    // Create new
+    const newDocument = await prisma.document.create({
+      data: {
+        ipoId,
+        companyId,
+        type,
+        url
+      }
+    });
+
+    res.status(201).json({
+      message: "Document created successfully",
+      document: newDocument
+    });
+  } catch (error: any) {
     console.error("Error creating/updating document:", error);
-    res.status(500).json({ error: "Failed to save document" });
+    res.status(500).json({ error: "Failed to create/update document" });
   }
 }
