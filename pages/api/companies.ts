@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -9,13 +9,9 @@ export default async function handler(
     try {
       const companies = await prisma.company.findMany({
         include: {
-          ipos: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
+          ipos: true
+        }
       });
-
       res.status(200).json(companies);
     } catch (error) {
       console.error("Error fetching companies:", error);
@@ -23,22 +19,34 @@ export default async function handler(
     }
   } else if (req.method === "POST") {
     try {
-      const { name, logo } = req.body;
+      const { name, symbol, logo } = req.body;
 
-      if (!name) {
-        return res.status(400).json({ error: "Company name is required" });
+      // Validation
+      if (!name || !symbol) {
+        return res.status(400).json({
+          error: "Name and symbol are required"
+        });
       }
 
       const newCompany = await prisma.company.create({
         data: {
           name,
-          logo: logo || "",
-        },
+          symbol,
+          logo: logo || ""
+        }
       });
 
       res.status(201).json(newCompany);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating company:", error);
+
+      if (error.code === "P2002") {
+        const field = error.meta?.target?.[0] || "field";
+        return res.status(409).json({
+          error: `Company with this ${field} already exists`
+        });
+      }
+
       res.status(500).json({ error: "Failed to create company" });
     }
   } else {
