@@ -1,10 +1,14 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const ipos = await prisma.iPO.findMany({
       include: {
@@ -17,7 +21,6 @@ export default async function handler(
 
     const headers = [
       "Company Name",
-      "Symbol",
       "Price Band",
       "Issue Type",
       "Issue Size",
@@ -31,13 +34,16 @@ export default async function handler(
     ];
 
     const rows = ipos.map((ipo) => [
-      (ipo.company as any).name || "N/A",
-      (ipo.company as any).symbol || "N/A",
+      ipo.company?.name || "N/A",
       ipo.priceBand || "N/A",
       ipo.issueType || "N/A",
       ipo.issueSize || "N/A",
-      ipo.openDate ? new Date(ipo.openDate).toLocaleDateString() : "N/A",
-      ipo.closeDate ? new Date(ipo.closeDate).toLocaleDateString() : "N/A",
+      ipo.openDate
+        ? new Date(ipo.openDate).toLocaleDateString()
+        : "N/A",
+      ipo.closeDate
+        ? new Date(ipo.closeDate).toLocaleDateString()
+        : "N/A",
       ipo.status || "N/A",
       ipo.ipoPrice?.toString() || "N/A",
       ipo.listingPrice?.toString() || "N/A",
@@ -50,8 +56,8 @@ export default async function handler(
       ...rows.map((row) =>
         row
           .map((cell) => {
-            const str = String(cell).replace(/"/g, '""');
-            return `"${str}"`;
+            const value = String(cell).replace(/"/g, '""');
+            return `"${value}"`;
           })
           .join(",")
       )
@@ -62,10 +68,10 @@ export default async function handler(
       "Content-Disposition",
       'attachment; filename="ipos-export.csv"'
     );
-    
-    res.status(200).send(csvContent);
+
+    return res.status(200).send(csvContent);
   } catch (error) {
     console.error("CSV Export Error:", error);
-    res.status(500).json({ error: "Failed to export CSV" });
+    return res.status(500).json({ error: "Failed to export CSV" });
   }
 }
