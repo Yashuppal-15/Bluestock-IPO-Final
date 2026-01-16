@@ -9,8 +9,8 @@ interface Company {
 
 interface Document {
   id: number;
-  rhpPdf?: string;
-  drhpPdf?: string;
+  type: "RHP" | "DRHP";
+  url: string;
 }
 
 interface IPO {
@@ -50,16 +50,20 @@ export default function HomePage() {
     try {
       const res = await fetch("/api/ipos");
       const data = await res.json();
-      setIpos(data);
+
+      // ✅ SAFETY: always ensure array
+      setIpos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching IPOs:", error);
+      setIpos([]);
     } finally {
       setLoading(false);
     }
   };
 
   const applyFiltersAndSort = () => {
-    let result = ipos;
+    // ✅ SAFETY COPY
+    let result = Array.isArray(ipos) ? [...ipos] : [];
 
     // Apply status filter
     if (filter !== "ALL") {
@@ -113,7 +117,7 @@ export default function HomePage() {
   };
 
   const getReturnColor = (value?: number) => {
-    if (!value) return "text-gray-600";
+    if (value === undefined || value === null) return "text-gray-600";
     return value > 0 ? "text-green-600 font-bold" : "text-red-600 font-bold";
   };
 
@@ -164,7 +168,13 @@ export default function HomePage() {
                 >
                   {status}
                   <span className="ml-2 text-xs opacity-75">
-                    ({ipos.filter((ipo) => (status === "ALL" ? true : ipo.status === status)).length})
+                    (
+                    {
+                      (Array.isArray(ipos) ? ipos : []).filter((ipo) =>
+                        status === "ALL" ? true : ipo.status === status
+                      ).length
+                    }
+                    )
                   </span>
                 </button>
               ))}
@@ -193,8 +203,11 @@ export default function HomePage() {
         {/* Results Count */}
         <div className="mb-4">
           <p className="text-slate-600 text-sm">
-            Showing <span className="font-bold text-slate-900">{filteredIpos.length}</span> IPO
-            {filteredIpos.length !== 1 ? "s" : ""}
+            Showing{" "}
+            <span className="font-bold text-slate-900">
+              {filteredIpos.length}
+            </span>{" "}
+            IPO{filteredIpos.length !== 1 ? "s" : ""}
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
         </div>
@@ -239,7 +252,9 @@ export default function HomePage() {
                       {/* Key Metrics */}
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div className="bg-slate-50 p-3 rounded-lg">
-                          <p className="text-xs text-slate-600 mb-1">Price Band</p>
+                          <p className="text-xs text-slate-600 mb-1">
+                            Price Band
+                          </p>
                           <p className="font-bold text-slate-900">
                             {ipo.priceBand}
                           </p>
@@ -257,27 +272,35 @@ export default function HomePage() {
                       {/* Dates */}
                       <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                         <div>
-                          <p className="text-slate-600 text-xs mb-1">Open Date</p>
+                          <p className="text-slate-600 text-xs mb-1">
+                            Open Date
+                          </p>
                           <p className="font-semibold text-slate-900">
                             {new Date(ipo.openDate).toLocaleDateString("en-IN")}
                           </p>
                         </div>
                         <div>
-                          <p className="text-slate-600 text-xs mb-1">Close Date</p>
+                          <p className="text-slate-600 text-xs mb-1">
+                            Close Date
+                          </p>
                           <p className="font-semibold text-slate-900">
                             {new Date(ipo.closeDate).toLocaleDateString("en-IN")}
                           </p>
                         </div>
                       </div>
 
-                      {/* Returns (if listed) */}
+                      {/* Returns */}
                       {ipo.status === "LISTED" && ipo.listingGain !== null && (
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 mb-4">
                           <div>
                             <p className="text-xs text-slate-600 mb-1">
                               Listing Gain
                             </p>
-                            <p className={`font-bold text-lg ${getReturnColor(ipo.listingGain)}`}>
+                            <p
+                              className={`font-bold text-lg ${getReturnColor(
+                                ipo.listingGain
+                              )}`}
+                            >
                               {ipo.listingGain}%
                             </p>
                           </div>
@@ -285,7 +308,11 @@ export default function HomePage() {
                             <p className="text-xs text-slate-600 mb-1">
                               Current Return
                             </p>
-                            <p className={`font-bold text-lg ${getReturnColor(ipo.currentReturn)}`}>
+                            <p
+                              className={`font-bold text-lg ${getReturnColor(
+                                ipo.currentReturn
+                              )}`}
+                            >
                               {ipo.currentReturn}%
                             </p>
                           </div>
@@ -295,28 +322,18 @@ export default function HomePage() {
                       {/* Documents */}
                       {ipo.documents && ipo.documents.length > 0 && (
                         <div className="flex gap-2 mb-4 flex-wrap text-sm">
-                          {ipo.documents[0]?.rhpPdf && (
+                          {ipo.documents.map((doc) => (
                             <a
-                              href={ipo.documents[0].rhpPdf}
+                              key={doc.id}
+                              href={doc.url}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="text-blue-600 hover:text-blue-800 underline"
                             >
-                              📄 RHP
+                              📄 {doc.type}
                             </a>
-                          )}
-                          {ipo.documents[0]?.drhpPdf && (
-                            <a
-                              href={ipo.documents[0].drhpPdf}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-blue-600 hover:text-blue-800 underline"
-                            >
-                              📄 DRHP
-                            </a>
-                          )}
+                          ))}
                         </div>
                       )}
 
